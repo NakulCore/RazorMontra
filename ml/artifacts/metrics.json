@@ -1,0 +1,25 @@
+{
+  "model_name": "RandomForest",
+  "model_version": "rf_gb_ensemble_v1.0",
+  "precision": 0.9884,
+  "recall": 0.9942,
+  "f1_score": 0.9913,
+  "accuracy": 0.9983,
+  "roc_auc": 1.0,
+  "false_positive_rate": 0.0012,
+  "false_negative_rate": 0.0058,
+  "total_test_samples": 1800,
+  "fraud_samples": 172,
+  "non_fraud_samples": 1628,
+  "fraud_value_detected": 1299407.17,
+  "estimated_money_protected": 1299107.17,
+  "false_positive_cost": 300.0,
+  "false_negative_cost": 14835.14,
+  "threshold_used": 0.5,
+  "evaluated_at": "2026-09-02T08:55:20.362989+00:00",
+  "candidate_comparison": {
+    "LogisticRegression_auc": 0.9998,
+    "RandomForest_auc": 1.0,
+    "HistGradientBoosting_auc": 1.0
+  }
+}
