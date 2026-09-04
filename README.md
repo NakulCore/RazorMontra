@@ -56,6 +56,93 @@ All metrics are measured directly on an unseen **1,800-transaction held-out test
 
 ---
 
+## 📸 Final Build UI & System Walkthrough
+
+Explore the key interfaces and capabilities of the RazorMontra AI Payment Risk Copilot:
+
+### 1. Merchant Cockpit & Executive Dashboard
+![RazorMontra Dashboard](docs/images/dashboard.png)
+* **Real-time Portfolio Health:** Continuous telemetry tracking 12,000+ transactions, 115 high-risk interceptions, review queue volume, and **₹12,99,107** in protected capital with a **+99.2% Net Recovery ROI**.
+* **Visual Defense Pipeline:** High-level pipeline stage tracking from transaction ingest to ML ensemble inference, deterministic rules, RAG retrieval, and bounded action dispatch.
+* **Held-Out Model KPIs:** Instant visibility into empirical validation metrics (98.8% Precision, 99.4% Recall, 99.1% F1, 100% ROC-AUC).
+
+---
+
+### 2. Active Risk Alerts & Slide-Out Investigation Console
+![Risk Alerts & Investigation Console](docs/images/risk-investigation-console.png)
+* **Triage Alert Queue:** Dedicated queue grouping intercepted transactions by severity (`CRITICAL`, `HIGH`, `MEDIUM`) with instant signal badges (New Device, Velocity Burst, Geo Mismatch).
+* **Deep-Dive Investigation Console:** Slide-over analyst console presenting:
+  - **Calibrated ML Risk Score Gauge:** Real-time risk scoring and calibrated fraud probability (`Score: 87/100`, `86.7% fraud probability`).
+  - **AI Risk Investigator Synthesis:** Grounded synthesis citing empirical deviations, failed authorization history, and specific rule violations without hallucination.
+  - **Bounded Decision & Override Actions:** Autonomous decision recommendations (`ESCALATE` with 96% confidence) with one-click analyst actions (`Approve`, `Verify`, `Flag`, `Escalate`).
+
+---
+
+### 3. Interactive 7-Archetype Demo Simulator
+![Interactive Demo Simulator](docs/images/demo-simulator.png)
+* **Reproducible Test Scenarios:** Built-in simulator covering all key fraud archetypes:
+  - `NORMAL_PAYMENT`: Frictionless ₹1,250 routine UPI groceries payment (`LOW RISK` → `APPROVE`).
+  - `HIGH_VALUE_ANOMALY`: Sudden ₹65,000 transaction (8.1x baseline) from unrecognized device (`MEDIUM RISK` → `FLAG`).
+  - `VELOCITY_ATTACK`: 8 rapid card attempts in 10 minutes from bot burst (`CRITICAL` → `ESCALATE`).
+  - `NEW_DEVICE_TAKEOVER`: Foreign proxy IP + first-time device binding (`HIGH RISK` → `ESCALATE`).
+  - `LOCATION_ANOMALY`: Offshore Romanian IP with unknown device and prior failures (`HIGH RISK` → `ESCALATE`).
+  - `MULTI_SIGNAL_FRAUD`: Compound high-ticket burst with chargeback history (`HIGH RISK` → `ESCALATE`).
+  - `FALSE_POSITIVE`: Singapore hotel booking by established customer with trusted device (`LOW RISK` → `APPROVE`).
+* **Live Telemetry Seeder:** One-click button to seed 50 live transactions through the end-to-end pipeline.
+
+---
+
+### 4. 9-Stage Autonomous Risk Pipeline Execution
+![Autonomous Risk Pipeline Modal](docs/images/autonomous-risk-pipeline.png)
+* **Multi-Layer Defense in Motion:** Interactive pipeline modal showing millisecond-by-millisecond progression through 9 deterministic and AI stages:
+  1. `TRANSACTION INGEST` — Schema and cryptographic signature verification.
+  2. `FEATURE EXTRACTION` — Baseline ratio calculation, device novelty, and velocity windowing.
+  3. `ML RISK MODEL` — Random Forest inference and calibrated probability scoring.
+  4. `SAFETY RULES` — Enforcement of 7 deterministic compliance gates.
+  5. `RAG RETRIEVAL` — Vector search over Razorpay compliance policies.
+  6. `AI INVESTIGATION` — Context synthesis and missing KYC detection.
+  7. `BOUNDED DECISION` — Strict safety override bounds.
+  8. `SANDBOX ACTION` — Idempotent dispatch to payment provider sandbox.
+  9. `AUDIT LOGGED` — Immutable cryptographic ledger entry generation.
+
+---
+
+### 5. Live Payment Stream & Real-Time Ingestion
+![Live Payment Stream](docs/images/live-transactions.png)
+* **Continuous Ingestion Telemetry:** High-throughput streaming view of incoming merchant transactions with real-time risk scores, decision verdicts, and key anomaly tags.
+* **Instant Actionability:** One-click `Investigate →` launcher for any individual transaction.
+
+---
+
+### 6. Empirical ML Model Evaluation & Financial Impact
+![Model Evaluation & Financial ROI](docs/images/model-evaluation.png)
+* **Held-Out Test Set Metrics:** Genuine evaluation on 1,800 unseen test samples:
+  - **Precision:** 98.84% (False Positive Rate: 0.12%)
+  - **Recall:** 99.42% (Intercepts 99.4% of all fraud attacks)
+  - **F1-Score:** 99.13% | **ROC-AUC:** 100.00% | **Accuracy:** 99.83%
+* **Confusion Matrix & ROI Accounting:** Full confusion matrix (1,626 True Negatives, 171 True Positives, 2 False Positives, 1 False Negative) coupled with actual financial metrics:
+  - Gross fraud exposure: ₹13,14,242
+  - Intercepted fraud value: **₹12,99,407**
+  - Customer friction review cost: -₹300 (only 2 reviews required)
+  - **Net Recovery Rate: 99.2%**
+
+---
+
+### 7. Vectorized RAG Policy Knowledge Base
+![RAG Policy Knowledge Base](docs/images/rag-policies.png)
+* **Context-Grounded Policy Retrieval:** TF-IDF vector index searching over indexed Razorpay compliance and dispute mitigation protocols.
+* **Semantic Querying:** Real-time search engine matching user queries and anomalous transaction patterns against relevant policy clauses (Transaction Limits, Velocity Control, Device Security, Geo Compliance, Auth Standards, Dispute Risk, Emergency Escalation).
+
+---
+
+### 8. Immutable Risk Decision Ledger with Interactive Audit Inspection
+![Immutable Risk Decision Ledger](docs/images/audit-ledger.png)
+* **Cryptographic Traceability:** Full tamper-evident audit ledger capturing every automated decision, policy citation, and provider action dispatch.
+* **Interactive Decision Slicing:** Real-time filter pills (`ALL`, `ESCALATE`, `FLAG`, `VERIFY`, `APPROVE`) with dynamic record counts.
+* **One-Click Decision Inspector (`Inspect ↗`):** Detailed modal showing rule gate trip points, cited Razorpay policy clauses, and a direct link to launch the live investigation console.
+
+---
+
 ## 🚀 Quick Start (Local Development)
 
 ### 1. Prerequisites

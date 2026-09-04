@@ -18,6 +18,8 @@
    * **Recall:** **99.4%** (Detects virtually all fraud attempts).
    * **F1-Score:** **99.1%** & **ROC-AUC: 1.0000** on held-out test split.
 
+![RazorMontra Dashboard](images/dashboard.png)
+
 ---
 
 ### Step 2: Interactive Scenario Simulation (0:45 - 2:00)
@@ -34,6 +36,9 @@
    * Action Engine dispatches `escalate_and_block` to the sandbox payment provider.
    * Immutable Audit Ledger records trace hash.
 
+![Demo Simulator](images/demo-simulator.png)
+![Autonomous Risk Pipeline Execution](images/autonomous-risk-pipeline.png)
+
 ---
 
 ### Step 3: Deep-Dive into the Investigation Drawer (2:00 - 3:30)
@@ -45,6 +50,8 @@
    * **Bounded Decision:** Shows strict compliance bounds (The AI cannot bypass high-risk safeguards).
    * **Idempotent Safe Action:** Displays the dispatch confirmation ID and status.
 
+![Investigation Console Drawer](images/risk-investigation-console.png)
+
 ---
 
 ### Step 4: Test Benign Outlier / False Positive Handling (3:30 - 4:15)
@@ -52,14 +59,17 @@
 2. Click **"Simulate & Investigate"**.
 3. **Observe the result:**
    * Despite an international IP (Singapore), the ML model recognizes the established customer age (720 days), normal customer device, and low velocity.
-   * The system assigns **Low Risk (Score: 22/100)** and issues an automated **APPROVE** decision.
+   * The system assigns **Low Risk (Score: 7/100)** and issues an automated **APPROVE** decision.
    * Demonstrates that the copilot avoids unnecessary friction for high-trust users.
 
 ---
 
 ### Step 5: Audit Ledger & Model Evaluation Cockpit (4:15 - 5:00)
-1. Click **"Audit Trail"** to inspect the immutable ledger of all analysis events.
+1. Click **"Audit Trail"** to inspect the immutable ledger of all analysis events. Click any decision badge to inspect its detailed rule gate breakdown and policy citations.
 2. Click **"Model Evaluation"** to view the candidate comparison:
    * Validation comparison between Logistic Regression, Random Forest, and HistGradientBoosting.
    * Confusion matrix and financial ROI breakdown (Fraud Intercepted vs. Review Cost).
 3. **Conclusion:** The AI Payment Risk Copilot is a measurable, grounded, bounded, and production-ready defense system for Razorpay merchants.
+
+![Audit Ledger](images/audit-ledger.png)
+![Model Evaluation](images/model-evaluation.png)
