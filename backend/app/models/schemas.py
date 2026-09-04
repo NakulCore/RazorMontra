@@ -60,6 +60,9 @@ class TransactionResponse(TransactionBase):
     transaction_id: str
     timestamp: datetime
     is_fraud: Optional[bool] = None
+    risk_score: Optional[int] = None
+    risk_class: Optional[RiskClass] = None
+    decision: Optional[DecisionType] = None
 
     model_config = ConfigDict(from_attributes=True)
 

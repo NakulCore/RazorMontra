@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Transaction } from '../types';
+import { Transaction, AuditRecord, RiskClass, DecisionType } from '../types';
 import {
   ShieldAlert,
   Flame,
@@ -19,30 +19,35 @@ import { DecisionBadge } from '../components/DecisionBadge';
 
 interface AlertsPageProps {
   transactions: Transaction[];
+  auditRecords?: AuditRecord[];
   onSelectTransaction: (tx: Transaction) => void;
 }
 
 export const AlertsPage: React.FC<AlertsPageProps> = ({
   transactions,
+  auditRecords = [],
   onSelectTransaction,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'high'>('all');
 
-  // Filter for alerts only
+  // Fast lookup by transaction_id for synced audit records
+  const auditMap = useMemo(() => {
+    const map = new Map<string, AuditRecord>();
+    for (const a of auditRecords) {
+      map.set(a.transaction_id, a);
+    }
+    return map;
+  }, [auditRecords]);
+
+  // Synchronized alerts list with actual risk score, class, and decision
   const alertItems = useMemo(() => {
     return transactions
-      .filter((t) => t.is_fraud || t.amount > 30000 || t.transactions_last_10_minutes >= 2 || t.new_location || t.previous_failed_transactions > 0)
       .map((t) => {
-        let score = 78;
-        let severity: 'HIGH' | 'CRITICAL' = 'HIGH';
-        let decision: 'APPROVE' | 'VERIFY' | 'FLAG' | 'ESCALATE' = 'FLAG';
-
-        if (t.is_fraud || t.transactions_last_10_minutes >= 4) {
-          score = 96;
-          severity = 'CRITICAL';
-          decision = 'ESCALATE';
-        }
+        const audit = auditMap.get(t.transaction_id);
+        const score = audit?.risk_score ?? t.risk_score ?? (t.is_fraud ? 96 : t.amount > 35000 ? 82 : 25);
+        const severity = (audit?.risk_class ?? t.risk_class ?? (score >= 90 ? 'CRITICAL' : score >= 75 ? 'HIGH' : score >= 40 ? 'MEDIUM' : 'LOW')) as RiskClass;
+        const decision = (audit?.decision ?? t.decision ?? (score >= 85 ? 'ESCALATE' : score >= 70 ? 'FLAG' : score >= 35 ? 'VERIFY' : 'APPROVE')) as DecisionType;
 
         return {
           ...t,
@@ -50,8 +55,19 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
           severity,
           decision,
         };
+      })
+      .filter((item) => {
+        // High & critical risk interceptions or active fraud anomalies
+        return (
+          item.severity === 'CRITICAL' ||
+          item.severity === 'HIGH' ||
+          item.alertScore >= 70 ||
+          item.is_fraud ||
+          item.decision === 'ESCALATE' ||
+          item.decision === 'FLAG'
+        );
       });
-  }, [transactions]);
+  }, [transactions, auditMap]);
 
   const filtered = useMemo(() => {
     return alertItems.filter((item) => {
@@ -62,13 +78,13 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
 
       if (!matchesSearch) return false;
       if (severityFilter === 'critical') return item.severity === 'CRITICAL';
-      if (severityFilter === 'high') return item.severity === 'HIGH';
+      if (severityFilter === 'high') return item.severity === 'HIGH' || item.severity === 'MEDIUM';
       return true;
     });
   }, [alertItems, searchTerm, severityFilter]);
 
   const criticalCount = alertItems.filter((i) => i.severity === 'CRITICAL').length;
-  const highCount = alertItems.filter((i) => i.severity === 'HIGH').length;
+  const highCount = alertItems.filter((i) => i.severity === 'HIGH' || i.severity === 'MEDIUM').length;
 
   return (
     <div className="space-y-6">

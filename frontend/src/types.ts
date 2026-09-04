@@ -27,6 +27,9 @@ export interface Transaction {
   chargeback_history: number;
   account_age: number;
   is_fraud?: boolean;
+  risk_score?: number;
+  risk_class?: RiskClass;
+  decision?: DecisionType;
 }
 
 export interface RuleResult {

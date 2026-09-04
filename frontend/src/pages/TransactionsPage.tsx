@@ -36,22 +36,24 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
   // Process & enrich transactions for presentation
   const processed = useMemo(() => {
     return transactions.map((tx) => {
-      let riskScore = 12;
-      let riskClass: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'LOW';
-      let decision: 'APPROVE' | 'VERIFY' | 'FLAG' | 'ESCALATE' = 'APPROVE';
+      let riskScore = tx.risk_score ?? 12;
+      let riskClass: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = tx.risk_class ?? 'LOW';
+      let decision: 'APPROVE' | 'VERIFY' | 'FLAG' | 'ESCALATE' = tx.decision ?? 'APPROVE';
 
-      if (tx.is_fraud || tx.transactions_last_10_minutes >= 4) {
-        riskScore = 95;
-        riskClass = 'CRITICAL';
-        decision = 'ESCALATE';
-      } else if (tx.amount > 35000 || tx.amount_deviation > 3.0) {
-        riskScore = 82;
-        riskClass = 'HIGH';
-        decision = 'FLAG';
-      } else if (tx.new_device || tx.ip_country !== tx.customer_country || tx.previous_failed_transactions > 0) {
-        riskScore = 52;
-        riskClass = 'MEDIUM';
-        decision = 'VERIFY';
+      if (tx.risk_score === undefined) {
+        if (tx.is_fraud || tx.transactions_last_10_minutes >= 4) {
+          riskScore = 95;
+          riskClass = 'CRITICAL';
+          decision = 'ESCALATE';
+        } else if (tx.amount > 35000 || tx.amount_deviation > 3.0) {
+          riskScore = 82;
+          riskClass = 'HIGH';
+          decision = 'FLAG';
+        } else if (tx.new_device || tx.ip_country !== tx.customer_country || tx.previous_failed_transactions > 0) {
+          riskScore = 52;
+          riskClass = 'MEDIUM';
+          decision = 'VERIFY';
+        }
       }
 
       return {

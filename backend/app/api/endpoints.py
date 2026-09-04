@@ -269,7 +269,24 @@ async def list_transactions(
 
     res = await db.execute(stmt)
     records = res.scalars().all()
-    return [TransactionResponse.model_validate(r) for r in records]
+    results = []
+    for r in records:
+        tx_resp = TransactionResponse.model_validate(r)
+        audit = await audit_service.get_by_transaction_id(r.transaction_id, db=db)
+        if audit:
+            tx_resp.risk_score = audit.risk_score
+            tx_resp.risk_class = audit.risk_class
+            tx_resp.decision = audit.decision
+        else:
+            d = {col.name: getattr(r, col.name) for col in r.__table__.columns}
+            ml = ml_engine.predict(d)
+            rules = rule_engine.evaluate(d)
+            dec = decision_agent.decide(ml, rules, [], "")
+            tx_resp.risk_score = ml.risk_score
+            tx_resp.risk_class = ml.risk_class
+            tx_resp.decision = dec.decision
+        results.append(tx_resp)
+    return results
 
 @router.get("/transactions/{transaction_id}", response_model=TransactionResponse)
 async def get_transaction(transaction_id: str, db: AsyncSession = Depends(get_db)):
@@ -278,7 +295,21 @@ async def get_transaction(transaction_id: str, db: AsyncSession = Depends(get_db
     record = res.scalar_one_or_none()
     if not record:
         raise HTTPException(status_code=404, detail="Transaction not found.")
-    return TransactionResponse.model_validate(record)
+    tx_resp = TransactionResponse.model_validate(record)
+    audit = await audit_service.get_by_transaction_id(record.transaction_id, db=db)
+    if audit:
+        tx_resp.risk_score = audit.risk_score
+        tx_resp.risk_class = audit.risk_class
+        tx_resp.decision = audit.decision
+    else:
+        d = {col.name: getattr(record, col.name) for col in record.__table__.columns}
+        ml = ml_engine.predict(d)
+        rules = rule_engine.evaluate(d)
+        dec = decision_agent.decide(ml, rules, [], "")
+        tx_resp.risk_score = ml.risk_score
+        tx_resp.risk_class = ml.risk_class
+        tx_resp.decision = dec.decision
+    return tx_resp
 
 # --- Policies & RAG Endpoints ---
 

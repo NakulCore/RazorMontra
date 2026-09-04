@@ -182,6 +182,7 @@ export const App: React.FC = () => {
             {currentTab === 'alerts' && (
               <AlertsPage
                 transactions={transactions}
+                auditRecords={auditTrail}
                 onSelectTransaction={handleSelectTransaction}
               />
             )}
