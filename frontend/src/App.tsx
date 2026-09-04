@@ -143,7 +143,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] text-zinc-900 flex flex-col selection:bg-black selection:text-white font-sans antialiased">
+    <div className="h-screen bg-[#f5f5f7] text-zinc-900 flex flex-col selection:bg-black selection:text-white font-sans antialiased overflow-hidden">
       {/* Clean Top Navigation Bar */}
       <Header
         onRefresh={() => loadAllData(true)}

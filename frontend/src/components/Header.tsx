@@ -24,13 +24,13 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="h-14 bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <header className="h-14 bg-white border-b border-zinc-200/90 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       {/* Brand & Mobile Toggle */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-3 shrink-0">
         {onToggleMobileMenu && (
           <button
             onClick={onToggleMobileMenu}
-            className="p-1.5 rounded-lg bg-zinc-100 text-zinc-600 hover:text-zinc-900 md:hidden transition"
+            className="p-1.5 rounded-lg bg-zinc-100 text-zinc-600 hover:text-zinc-900 md:hidden transition shrink-0"
             title="Toggle Navigation Menu"
             aria-label="Toggle navigation menu"
           >
@@ -38,17 +38,17 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        <div className="flex items-center space-x-2.5">
+        <div className="flex items-center space-x-2.5 shrink-0">
           <img
             src="https://img.logo.dev/razorpay.com?token=live_6a1a28fd-6420-4492-aeb0-b297461d9de2&size=512&retina=true&format=png"
             alt="Razorpay"
             className="w-8 h-8 rounded-lg object-contain bg-white border border-zinc-200/90 p-1 shadow-2xs shrink-0"
           />
-          <div>
+          <div className="shrink-0">
             <div className="flex items-center space-x-2">
-              <span className="font-extrabold text-zinc-900 text-sm tracking-tight">RazorMontra</span>
+              <span className="font-extrabold text-zinc-900 text-sm sm:text-base tracking-tight select-none">RazorMontra</span>
             </div>
-            <p className="text-[11px] text-zinc-500 hidden sm:block leading-none mt-0.5">
+            <p className="text-[11px] text-zinc-500 hidden sm:block leading-none mt-0.5 select-none">
               AI Financial Intelligence for Merchants
             </p>
           </div>
@@ -56,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Status Indicators & Actions - Strictly Aligned on Single Baseline */}
-      <div className="flex items-center space-x-2 sm:space-x-2.5">
+      <div className="flex items-center space-x-2 sm:space-x-2.5 shrink-0">
         {/* System Status Indicator */}
         <div className="hidden lg:flex items-center space-x-2 h-7 px-2.5 rounded-md bg-zinc-100/90 border border-zinc-200 text-[11px] text-zinc-700 font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]" />

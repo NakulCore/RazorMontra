@@ -53,13 +53,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Backdrop */}
       {isOpenMobile && (
         <div
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 top-14 bg-black/30 backdrop-blur-sm z-30 md:hidden"
           onClick={onCloseMobile}
         />
       )}
 
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-40 bg-white/70 backdrop-blur-xl border-r border-zinc-200/80 flex flex-col justify-between p-3 shrink-0 transition-all duration-200 shadow-[1px_0_2px_rgba(0,0,0,0.02)] ${
+        className={`fixed top-14 bottom-0 left-0 z-40 md:relative md:top-auto md:bottom-auto md:z-20 md:h-full bg-white md:bg-white/90 md:backdrop-blur-xl border-r border-zinc-200/80 flex flex-col justify-between p-3 shrink-0 transition-all duration-200 shadow-[1px_0_2px_rgba(0,0,0,0.02)] overflow-y-auto ${
           collapsed ? 'w-16' : 'w-56'
         } ${isOpenMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
