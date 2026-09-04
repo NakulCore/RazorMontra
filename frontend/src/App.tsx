@@ -198,7 +198,12 @@ export const App: React.FC = () => {
 
             {currentTab === 'metrics' && <MetricsPage metrics={metrics?.model_metrics} />}
 
-            {currentTab === 'audit' && <AuditPage auditRecords={auditTrail} />}
+            {currentTab === 'audit' && (
+              <AuditPage
+                auditRecords={auditTrail}
+                onSelectTransaction={handleSelectTransaction}
+              />
+            )}
 
             {/* Subtle Application Footer Disclaimer */}
             <footer className="pt-8 pb-3 text-center border-t border-zinc-200/60 mt-10">

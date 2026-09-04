@@ -36,6 +36,8 @@ DEMO_SCENARIOS = {
     "NORMAL_PAYMENT": {
         "name": "Normal Frictionless Payment",
         "description": "Routine INR 1,250 groceries payment from regular customer device and domestic IP.",
+        "risk_class": "LOW",
+        "expected_decision": "APPROVE",
         "payload": {
             "merchant_id": "merch_0012",
             "customer_id": "cust_00342",
@@ -62,6 +64,8 @@ DEMO_SCENARIOS = {
     "HIGH_VALUE_ANOMALY": {
         "name": "High-Value Spike Anomaly",
         "description": "Sudden ₹65,000 transaction (8.1x historical average) from an unrecognized device.",
+        "risk_class": "MEDIUM",
+        "expected_decision": "FLAG",
         "payload": {
             "merchant_id": "merch_0088",
             "customer_id": "cust_00109",
@@ -88,6 +92,8 @@ DEMO_SCENARIOS = {
     "VELOCITY_ATTACK": {
         "name": "Automated Velocity Bot Attack",
         "description": "8 rapid successive transactions within 10 minutes with preceding failed authorization attempts.",
+        "risk_class": "CRITICAL",
+        "expected_decision": "ESCALATE",
         "payload": {
             "merchant_id": "merch_0005",
             "customer_id": "cust_00781",
@@ -114,6 +120,8 @@ DEMO_SCENARIOS = {
     "NEW_DEVICE_TAKEOVER": {
         "name": "Account Takeover via New Device",
         "description": "First-time device binding with high ticket size from a foreign proxy IP.",
+        "risk_class": "HIGH",
+        "expected_decision": "ESCALATE",
         "payload": {
             "merchant_id": "merch_0033",
             "customer_id": "cust_00492",
@@ -139,25 +147,27 @@ DEMO_SCENARIOS = {
     },
     "LOCATION_ANOMALY": {
         "name": "Offshore Geographic Anomaly",
-        "description": "Cross-border payment from Romanian IP address against domestic merchant.",
+        "description": "Cross-border payment from Romanian IP address against domestic merchant with unknown device.",
+        "risk_class": "HIGH",
+        "expected_decision": "ESCALATE",
         "payload": {
             "merchant_id": "merch_0019",
             "customer_id": "cust_00812",
-            "amount": 22000.0,
+            "amount": 32000.0,
             "currency": "INR",
             "payment_method": "card",
-            "device_id": "dev_cust_00812_1",
-            "device_age": 120,
+            "device_id": "dev_cust_00812_new",
+            "device_age": 1,
             "ip_country": "RO",
             "customer_country": "IN",
             "merchant_country": "IN",
             "previous_transaction_count": 18,
-            "previous_failed_transactions": 0,
+            "previous_failed_transactions": 2,
             "transactions_last_10_minutes": 1,
             "transactions_last_hour": 2,
             "average_customer_amount": 5500.0,
-            "amount_deviation": 3.0,
-            "new_device": False,
+            "amount_deviation": 5.8,
+            "new_device": True,
             "new_location": True,
             "chargeback_history": 0,
             "account_age": 200
@@ -166,6 +176,8 @@ DEMO_SCENARIOS = {
     "MULTI_SIGNAL_FRAUD": {
         "name": "Multi-Signal Coordinated Fraud",
         "description": "Compound high-risk event: Extreme amount + burst velocity + unknown device + offshore origin + prior chargebacks.",
+        "risk_class": "HIGH",
+        "expected_decision": "ESCALATE",
         "payload": {
             "merchant_id": "merch_0001",
             "customer_id": "cust_00009",
@@ -192,6 +204,8 @@ DEMO_SCENARIOS = {
     "FALSE_POSITIVE": {
         "name": "Legitimate Vacation Purchase (Benign Outlier)",
         "description": "Legitimate established customer making a hotel booking in Singapore on their normal device.",
+        "risk_class": "LOW",
+        "expected_decision": "APPROVE",
         "payload": {
             "merchant_id": "merch_0055",
             "customer_id": "cust_00990",

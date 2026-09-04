@@ -96,11 +96,11 @@ export const DemoScenariosPage: React.FC<DemoScenariosPageProps> = ({
   // Scenario configuration metadata
   const scenarioMeta: Record<string, { riskClass: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'; tag: string }> = {
     NORMAL_PAYMENT: { riskClass: 'LOW', tag: 'BENIGN BASELINE' },
-    HIGH_VALUE_ANOMALY: { riskClass: 'HIGH', tag: 'AMOUNT ANOMALY' },
+    HIGH_VALUE_ANOMALY: { riskClass: 'MEDIUM', tag: 'AMOUNT ANOMALY' },
     VELOCITY_ATTACK: { riskClass: 'CRITICAL', tag: 'BOT BURST' },
     NEW_DEVICE_TAKEOVER: { riskClass: 'HIGH', tag: 'ACCOUNT TAKEOVER' },
     LOCATION_ANOMALY: { riskClass: 'HIGH', tag: 'OFFSHORE PROXY' },
-    MULTI_SIGNAL_FRAUD: { riskClass: 'CRITICAL', tag: 'COORDINATED FRAUD' },
+    MULTI_SIGNAL_FRAUD: { riskClass: 'HIGH', tag: 'COORDINATED FRAUD' },
     FALSE_POSITIVE: { riskClass: 'LOW', tag: 'BENIGN VACATION (EDGE CASE)' },
   };
 
@@ -145,11 +145,16 @@ export const DemoScenariosPage: React.FC<DemoScenariosPageProps> = ({
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-md flex items-center justify-center p-4">
           <div className="glass-card max-w-lg w-full rounded-2xl p-6 border border-zinc-200 shadow-2xl space-y-4 bg-white/95 text-zinc-900">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2.5">
                 <RefreshCw className="w-4 h-4 text-zinc-900 animate-spin" />
-                <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
-                  Executing Autonomous Risk Pipeline
-                </h3>
+                <div>
+                  <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                    Executing Autonomous Risk Pipeline
+                  </h3>
+                  <p className="text-[11px] text-zinc-500 font-medium">
+                    Scenario: {scenarios[activeRunningKey]?.name || activeRunningKey}
+                  </p>
+                </div>
               </div>
               <span className="text-[11px] font-mono text-zinc-500">
                 Step {animationStep + 1} of {pipelineStages.length}
@@ -203,22 +208,39 @@ export const DemoScenariosPage: React.FC<DemoScenariosPageProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {Object.entries(scenarios).map(([key, scenario]) => {
           const meta = scenarioMeta[key] || { riskClass: 'HIGH', tag: 'FRAUD ARCHETYPE' };
+          const resolvedRiskClass = scenario.risk_class || meta.riskClass;
           const isProcessing = activeRunningKey === key;
 
           return (
             <div
               key={key}
-              className="glass-card-interactive rounded-xl p-5 flex flex-col justify-between min-h-[310px] border border-zinc-200/80 shadow-xs hover:shadow-md transition-shadow"
+              onClick={() => !isProcessing && handleRunScenario(key, scenario)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  if (!isProcessing) handleRunScenario(key, scenario);
+                }
+              }}
+              className="glass-card-interactive rounded-xl p-5 flex flex-col justify-between min-h-[310px] border border-zinc-200/80 shadow-xs hover:shadow-md transition-all cursor-pointer group hover:border-zinc-400"
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <RiskBadge riskClass={meta.riskClass} size="sm" />
+                  <div className="flex items-center gap-1.5">
+                    <RiskBadge riskClass={resolvedRiskClass} size="sm" />
+                    {scenario.expected_decision && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-zinc-200 bg-zinc-50 text-zinc-700 font-semibold uppercase">
+                        {scenario.expected_decision}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs font-mono font-bold text-zinc-900 tabular-nums">
                     ₹{Math.round(scenario.payload.amount || 0).toLocaleString('en-IN')}
                   </span>
                 </div>
 
-                <h3 className="font-bold text-zinc-900 text-sm tracking-tight">{scenario.name}</h3>
+                <h3 className="font-bold text-zinc-900 text-sm tracking-tight group-hover:text-black transition-colors">{scenario.name}</h3>
                 <p className="text-xs text-zinc-600 mt-1 leading-relaxed min-h-[36px]">{scenario.description}</p>
 
                 {/* Payload Highlights Box - Protected against overflow */}
@@ -250,7 +272,10 @@ export const DemoScenariosPage: React.FC<DemoScenariosPageProps> = ({
 
               {/* Action Button - Always Aligned at Bottom */}
               <button
-                onClick={() => handleRunScenario(key, scenario)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRunScenario(key, scenario);
+                }}
                 disabled={isProcessing}
                 className="w-full h-9 rounded-xl bg-black hover:bg-zinc-800 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-xs active:scale-98 disabled:opacity-50 mt-auto"
               >

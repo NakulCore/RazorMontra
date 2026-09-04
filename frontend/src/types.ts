@@ -177,5 +177,7 @@ export interface SystemOverviewMetrics {
 export interface DemoScenario {
   name: string;
   description: string;
+  risk_class?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  expected_decision?: string;
   payload: Partial<Transaction>;
 }

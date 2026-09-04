@@ -36,7 +36,7 @@ class BoundedDecisionAgent:
             confidence = 0.92
 
         # 3. Medium Risk / Verification Challenge Bounds
-        elif score >= 35 or rule_count >= 1:
+        elif score >= 35 or (rule_count >= 1 and (critical_rule or high_rule or score >= 25 or rule_count >= 2)):
             decision = DecisionType.VERIFY
             reason = f"Medium risk anomaly detected (Score: {score}/100). Step-up 3DS/OTP verification required pursuant to policy {policy_ids[0] if policy_ids else 'RPAY-POL-105'}."
             confidence = 0.90
@@ -44,7 +44,7 @@ class BoundedDecisionAgent:
         # 4. Low Risk Approval Bounds
         else:
             decision = DecisionType.APPROVE
-            reason = f"Low risk profile (Score: {score}/100, 0 rule violations). Authorized for frictionless checkout."
+            reason = f"Low risk profile (Score: {score}/100, established customer baseline). Authorized for frictionless checkout."
             confidence = 0.98
 
         # --- Deterministic Safety Guardrail Check ---
