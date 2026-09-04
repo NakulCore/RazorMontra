@@ -46,42 +46,53 @@ function formatPreviewText(text: string): string {
 
 export const PoliciesPage: React.FC<PoliciesPageProps> = ({ initialPolicies }) => {
   const [query, setQuery] = useState('');
-  const [policies, setPolicies] = useState<PolicyClause[]>(initialPolicies);
+  const [basePolicies, setBasePolicies] = useState<PolicyClause[]>(initialPolicies || []);
+  const [policies, setPolicies] = useState<PolicyClause[]>(initialPolicies || []);
   const [searching, setSearching] = useState(false);
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [selectedPolicy, setSelectedPolicy] = useState<PolicyClause | null>(null);
 
   // Synchronize when parent data loads or fetch if empty
   React.useEffect(() => {
     if (initialPolicies && initialPolicies.length > 0) {
-      setPolicies(initialPolicies);
+      setBasePolicies(initialPolicies);
+      if (!isSearchActive) {
+        setPolicies(initialPolicies);
+      }
     } else {
       fetchPolicies()
         .then((res) => {
-          if (res && res.length > 0) setPolicies(res);
+          if (res && res.length > 0) {
+            setBasePolicies(res);
+            if (!isSearchActive) setPolicies(res);
+          }
         })
         .catch(() => {});
     }
-  }, [initialPolicies]);
+  }, [initialPolicies, isSearchActive]);
 
-  // Compute available categories dynamically based on policies
+  // Compute available categories from basePolicies so category pills remain stable
   const availableCategories = useMemo(() => {
     const cats = new Set<string>(['ALL']);
-    policies.forEach((p) => {
+    const source = basePolicies.length > 0 ? basePolicies : policies;
+    source.forEach((p) => {
       if (p.category) cats.add(p.category);
     });
     return Array.from(cats);
-  }, [policies]);
+  }, [basePolicies, policies]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) {
-      setPolicies(initialPolicies.length > 0 ? initialPolicies : policies);
+  const executeSearch = async (searchTerm: string) => {
+    const trimmed = searchTerm.trim();
+    if (!trimmed) {
+      setIsSearchActive(false);
+      setPolicies(basePolicies.length > 0 ? basePolicies : initialPolicies);
       return;
     }
     setSearching(true);
+    setIsSearchActive(true);
     try {
-      const results = await searchPolicies(query, 25);
+      const results = await searchPolicies(trimmed, 25);
       setPolicies(results);
     } catch (err: any) {
       console.error('Failed to search policies:', err);
@@ -90,15 +101,39 @@ export const PoliciesPage: React.FC<PoliciesPageProps> = ({ initialPolicies }) =
     }
   };
 
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    executeSearch(query);
+  };
+
+  // Debounced live semantic search as user types
+  React.useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setIsSearchActive(false);
+      setPolicies(basePolicies.length > 0 ? basePolicies : initialPolicies);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      executeSearch(query);
+    }, 280);
+
+    return () => clearTimeout(timer);
+  }, [query, basePolicies, initialPolicies]);
+
   const handleClear = () => {
     setQuery('');
-    setPolicies(initialPolicies);
+    setIsSearchActive(false);
+    setActiveCategory('ALL');
+    setPolicies(basePolicies.length > 0 ? basePolicies : initialPolicies);
   };
 
   const filteredPolicies = useMemo(() => {
     if (activeCategory === 'ALL') return policies;
     return policies.filter((p) => p.category === activeCategory);
   }, [policies, activeCategory]);
+
 
   return (
     <div className="space-y-6">
@@ -190,7 +225,7 @@ export const PoliciesPage: React.FC<PoliciesPageProps> = ({ initialPolicies }) =
         {filteredPolicies.map((pol) => {
           const previewText = formatPreviewText(pol.text);
           const categoryLabel = CATEGORY_DISPLAY_NAMES[pol.category] || pol.category.replace(/_/g, ' ');
-          const isSearchMatch = pol.relevance_score !== undefined && pol.relevance_score < 1.0;
+          const isSearchMatch = isSearchActive && pol.relevance_score !== undefined;
 
           return (
             <div
@@ -307,7 +342,7 @@ export const PoliciesPage: React.FC<PoliciesPageProps> = ({ initialPolicies }) =
                 <Scale className="w-4 h-4 text-zinc-400" />
                 <span>Regulatory Grounding: Razorpay Merchant Risk Protocols</span>
               </div>
-              {selectedPolicy.relevance_score !== undefined && (
+              {isSearchActive && selectedPolicy.relevance_score !== undefined && (
                 <span className="font-mono text-zinc-900 font-bold bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200 text-[11px]">
                   Semantic Relevance: {(selectedPolicy.relevance_score * 100).toFixed(0)}%
                 </span>
