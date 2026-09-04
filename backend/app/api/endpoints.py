@@ -1,7 +1,11 @@
 import json
 import random
+import uuid
+import hmac
+import hashlib
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
 
@@ -20,6 +24,7 @@ from backend.app.services.rule_engine import rule_engine
 from backend.app.services.investigation_agent import investigation_agent
 from backend.app.services.decision_agent import decision_agent
 from backend.app.services.action_engine import action_engine
+from backend.app.services.razorpay_provider import get_payment_provider, RazorpayPaymentProvider
 from backend.app.services.audit_service import audit_service
 from backend.app.services.generator import generate_synthetic_dataset
 from backend.app.core.config import settings
@@ -306,12 +311,36 @@ async def evaluate_decision(transaction: TransactionCreate):
 
 @router.post("/actions", response_model=ActionExecutionResponse)
 async def execute_action(request: ActionExecutionRequest):
-    dec_type = DecisionType(request.action.value.upper())
+    raw_action = str(request.action.value if hasattr(request.action, "value") else request.action).upper()
+    if raw_action in ["REQUEST_VERIFICATION", "VERIFY"]:
+        dec_type = DecisionType.VERIFY
+    else:
+        dec_type = DecisionType(raw_action)
+
     return await action_engine.execute_for_decision(
         transaction_id=request.transaction_id,
         decision=dec_type,
-        reason=request.reason
+        reason=request.reason,
+        amount=float(request.amount or 0.0),
+        currency=str(request.currency or "INR"),
+        force=True
     )
+
+@router.get("/provider/status")
+async def get_provider_status():
+    """
+    Returns payment provider operational status, test mode verification,
+    and safe connectivity details without exposing sensitive secrets.
+    """
+    provider = get_payment_provider()
+    cred_status = await provider.verify_credentials()
+    return {
+        "provider": provider.provider_name,
+        "is_razorpay": isinstance(provider, RazorpayPaymentProvider),
+        "test_mode": settings.RAZORPAY_TEST_MODE,
+        "credentials_configured": bool(settings.RAZORPAY_KEY_ID and settings.RAZORPAY_KEY_SECRET),
+        "details": cred_status
+    }
 
 # --- Audit Endpoints ---
 
@@ -385,35 +414,108 @@ async def seed_demo_data(count: int = Query(100, ge=10, le=500), db: AsyncSessio
     seeded_results = []
     
     for row in df.to_dict(orient="records"):
+        row["transaction_id"] = f"{row['transaction_id']}_{uuid.uuid4().hex[:6]}"
         res = await pipeline_service.analyze_transaction(row, db=db, auto_execute_action=True)
-        # Store transaction in DB
-        db_tx = DBTransaction(
-            transaction_id=res.transaction.transaction_id,
-            merchant_id=res.transaction.merchant_id,
-            customer_id=res.transaction.customer_id,
-            timestamp=res.transaction.timestamp,
-            amount=res.transaction.amount,
-            currency=res.transaction.currency,
-            payment_method=res.transaction.payment_method,
-            device_id=res.transaction.device_id,
-            device_age=res.transaction.device_age,
-            ip_country=res.transaction.ip_country,
-            customer_country=res.transaction.customer_country,
-            merchant_country=res.transaction.merchant_country,
-            previous_transaction_count=res.transaction.previous_transaction_count,
-            previous_failed_transactions=res.transaction.previous_failed_transactions,
-            transactions_last_10_minutes=res.transaction.transactions_last_10_minutes,
-            transactions_last_hour=res.transaction.transactions_last_hour,
-            average_customer_amount=res.transaction.average_customer_amount,
-            amount_deviation=res.transaction.amount_deviation,
-            new_device=res.transaction.new_device,
-            new_location=res.transaction.new_location,
-            chargeback_history=res.transaction.chargeback_history,
-            account_age=res.transaction.account_age,
-            is_fraud=res.transaction.is_fraud
-        )
-        db.add(db_tx)
         seeded_results.append(res.transaction.transaction_id)
     
     await db.commit()
     return {"message": f"Successfully seeded and analyzed {len(seeded_results)} demo transactions.", "count": len(seeded_results)}
+
+
+@router.get("/webhooks/razorpay")
+async def razorpay_webhook_status():
+    """
+    Healthcheck and configuration status for the Razorpay Webhook endpoint.
+    """
+    return {
+        "status": "ready",
+        "endpoint": "/api/v1/webhooks/razorpay",
+        "signature_verification": bool(settings.RAZORPAY_WEBHOOK_SECRET),
+        "test_mode": settings.RAZORPAY_TEST_MODE
+    }
+
+
+@router.post("/webhooks/razorpay")
+async def handle_razorpay_webhook(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Receives and processes incoming real-time webhooks from Razorpay.
+    Verifies cryptographic HMAC-SHA256 signature when RAZORPAY_WEBHOOK_SECRET is set.
+    Passes payment.authorized events through the autonomous risk evaluation pipeline.
+    """
+    raw_body = await request.body()
+    signature = request.headers.get("x-razorpay-signature", "")
+
+    # 1. Cryptographic Signature Verification
+    if settings.RAZORPAY_WEBHOOK_SECRET:
+        expected_signature = hmac.new(
+            settings.RAZORPAY_WEBHOOK_SECRET.encode("utf-8"),
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
+        if not signature or not hmac.compare_digest(expected_signature, signature):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid webhook signature. Request origin unverified."
+            )
+
+    # 2. Parse JSON payload
+    try:
+        data = json.loads(raw_body)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Malformed JSON webhook body.")
+
+    event = data.get("event", "unknown")
+    event_payload = data.get("payload", {})
+    payment_entity = event_payload.get("payment", {}).get("entity", {})
+
+    # 3. Autonomous Risk Defense on payment.authorized
+    decision_summary = None
+    if event == "payment.authorized" and payment_entity:
+        payment_id = payment_entity.get("id", f"pay_{uuid.uuid4().hex[:10]}")
+        amount = float(payment_entity.get("amount", 0)) / 100.0
+        currency = payment_entity.get("currency", "INR")
+        customer_id = payment_entity.get("customer_id") or payment_entity.get("email") or "cust_webhook"
+        method = payment_entity.get("method", "card")
+
+        tx_dict = {
+            "transaction_id": payment_id,
+            "merchant_id": payment_entity.get("notes", {}).get("merchant_id", "merch_live"),
+            "customer_id": customer_id,
+            "amount": amount,
+            "currency": currency,
+            "payment_method": method,
+            "device_id": f"dev_{customer_id[:12]}",
+            "device_age": 90,
+            "ip_country": "IN",
+            "customer_country": "IN",
+            "merchant_country": "IN",
+            "previous_transaction_count": 10,
+            "previous_failed_transactions": 0,
+            "transactions_last_10_minutes": 0,
+            "transactions_last_hour": 1,
+            "average_customer_amount": amount if amount > 0 else 1000.0,
+            "amount_deviation": 1.0,
+            "new_device": False,
+            "new_location": False,
+            "chargeback_history": 0,
+            "account_age": 180,
+        }
+
+        analysis = await pipeline_service.analyze_transaction(tx_dict, db=db, auto_execute_action=True)
+        decision_summary = {
+            "risk_score": analysis.ml_result.risk_score,
+            "decision": analysis.decision.decision,
+            "reason": analysis.decision.reason,
+            "action_status": analysis.action.status if analysis.action else None
+        }
+
+    return {
+        "status": "received",
+        "event": event,
+        "processed_at": datetime.now(timezone.utc).isoformat(),
+        "decision": decision_summary
+    }
+

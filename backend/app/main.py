@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -10,6 +10,7 @@ from backend.app.core.database import init_db
 from backend.app.api.endpoints import router as api_router
 from backend.app.services.rag_engine import rag_engine
 from backend.app.services.ml_engine import ml_engine
+from backend.app.services.razorpay_provider import get_payment_provider
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,11 +57,14 @@ app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/health")
 async def health_check():
+    provider = get_payment_provider()
     return {
         "status": "OK",
         "ml_model_loaded": ml_engine.pipeline is not None,
         "policies_indexed": len(rag_engine.clauses),
-        "app_env": settings.APP_ENV
+        "app_env": settings.APP_ENV,
+        "payment_provider": provider.provider_name,
+        "test_mode": settings.RAZORPAY_TEST_MODE
     }
 
 # Mount built frontend if dist exists AFTER API routes
@@ -74,6 +78,8 @@ if dist_dir.exists():
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
+        if full_path.startswith("api/") or full_path == "api":
+            raise HTTPException(status_code=404, detail="API route not found.")
         file_path = dist_dir / full_path
         if file_path.exists() and file_path.is_file():
             return FileResponse(file_path)

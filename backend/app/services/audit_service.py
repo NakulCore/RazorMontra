@@ -67,6 +67,15 @@ class AuditService:
         # Persist to database if session provided
         if db is not None:
             try:
+                def _json_safe(val):
+                    if isinstance(val, dict):
+                        return {k: _json_safe(v) for k, v in val.items()}
+                    elif isinstance(val, list):
+                        return [_json_safe(i) for i in val]
+                    elif isinstance(val, datetime):
+                        return val.isoformat()
+                    return val
+
                 db_record = DBAuditRecord(
                     audit_id=record.audit_id,
                     transaction_id=record.transaction_id,
@@ -81,7 +90,7 @@ class AuditService:
                     decision=record.decision.value,
                     action=record.action.value,
                     status=record.status,
-                    raw_payload=record.raw_payload
+                    raw_payload=_json_safe(record.raw_payload)
                 )
                 db.add(db_record)
                 await db.commit()

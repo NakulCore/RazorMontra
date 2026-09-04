@@ -1,6 +1,7 @@
 export type RiskClass = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type DecisionType = 'APPROVE' | 'VERIFY' | 'FLAG' | 'ESCALATE';
 export type ActionType = 'approve' | 'request_verification' | 'flag' | 'escalate';
+export type NavTab = 'dashboard' | 'transactions' | 'alerts' | 'demo' | 'policies' | 'metrics' | 'audit';
 
 export interface Transaction {
   transaction_id: string;
@@ -144,6 +145,16 @@ export interface ModelMetrics {
   threshold_used: number;
   evaluated_at: string;
   candidate_comparison?: Record<string, number>;
+  true_negatives?: number;
+  false_positives?: number;
+  false_negatives?: number;
+  true_positives?: number;
+  confusion_matrix?: number[][];
+  total_fraud_value?: number;
+  boundary_errors?: {
+    false_positives?: Array<{ transaction_id: string; amount: number; reason: string }>;
+    false_negatives?: Array<{ transaction_id: string; amount: number; reason: string }>;
+  };
 }
 
 export interface SystemOverviewMetrics {

@@ -69,3 +69,23 @@ export async function seedDemoData(count = 50): Promise<{ message: string; count
   if (!res.ok) throw new Error('Failed to seed demo data');
   return res.json();
 }
+
+export async function executeAction(payload: {
+  transaction_id: string;
+  action: 'approve' | 'verify' | 'flag' | 'escalate';
+  reason: string;
+  amount?: number;
+  currency?: string;
+}): Promise<any> {
+  const res = await fetch(`${API_BASE}/actions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to execute action' }));
+    throw new Error(err.detail || 'Failed to execute action');
+  }
+  return res.json();
+}
+

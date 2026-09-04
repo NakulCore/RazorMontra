@@ -69,3 +69,64 @@ async def test_metrics_api():
         if metrics["model_metrics"]:
             assert metrics["model_metrics"]["precision"] > 0.8
             assert metrics["model_metrics"]["recall"] > 0.8
+
+@pytest.mark.asyncio
+async def test_demo_simulator_and_seed_api():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Get all demo scenarios
+        sc_res = await client.get("/api/v1/demo/scenarios")
+        assert sc_res.status_code == 200
+        scenarios = sc_res.json()
+        assert len(scenarios) >= 5
+        assert "NORMAL_PAYMENT" in scenarios
+        assert "VELOCITY_ATTACK" in scenarios
+
+        # Test seeding 10 demo transactions
+        seed_res = await client.post("/api/v1/demo/seed?count=10")
+        assert seed_res.status_code == 200
+        assert seed_res.json()["count"] == 10
+
+@pytest.mark.asyncio
+async def test_razorpay_webhook_endpoint():
+    import hmac
+    import hashlib
+    import json
+    from backend.app.core.config import settings
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        status_res = await client.get("/api/v1/webhooks/razorpay")
+        assert status_res.status_code == 200
+        assert status_res.json()["status"] == "ready"
+
+        webhook_body = {
+            "entity": "event",
+            "event": "payment.authorized",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_test_unit_123",
+                        "amount": 150000,
+                        "currency": "INR",
+                        "status": "authorized",
+                        "method": "upi",
+                        "email": "test.eval@razorpay.com"
+                    }
+                }
+            }
+        }
+        raw_bytes = json.dumps(webhook_body).encode("utf-8")
+        sig = hmac.new(
+            settings.RAZORPAY_WEBHOOK_SECRET.encode("utf-8"),
+            raw_bytes,
+            hashlib.sha256
+        ).hexdigest()
+
+        res = await client.post(
+            "/api/v1/webhooks/razorpay",
+            content=raw_bytes,
+            headers={"x-razorpay-signature": sig, "Content-Type": "application/json"}
+        )
+        assert res.status_code == 200
+        assert res.json()["event"] == "payment.authorized"

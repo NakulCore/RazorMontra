@@ -17,6 +17,7 @@ class DecisionType(str, Enum):
 
 class ActionType(str, Enum):
     APPROVE = "approve"
+    VERIFY = "verify"
     REQUEST_VERIFICATION = "request_verification"
     FLAG = "flag"
     ESCALATE = "escalate"
@@ -125,6 +126,8 @@ class ActionExecutionRequest(BaseModel):
     transaction_id: str
     action: ActionType
     reason: str
+    amount: Optional[float] = 0.0
+    currency: Optional[str] = "INR"
     executed_by: str = "copilot_agent"
 
 class ActionExecutionResponse(BaseModel):
@@ -167,7 +170,6 @@ class AuditRecord(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-# --- Metrics Schemas ---
 class ModelMetrics(BaseModel):
     model_name: str
     model_version: str
@@ -181,12 +183,20 @@ class ModelMetrics(BaseModel):
     total_test_samples: int
     fraud_samples: int
     non_fraud_samples: int
-    fraud_value_detected: float
-    estimated_money_protected: float
-    false_positive_cost: float
-    false_negative_cost: float
-    threshold_used: float
-    evaluated_at: str
+    true_negatives: int = 0
+    false_positives: int = 0
+    false_negatives: int = 0
+    true_positives: int = 0
+    confusion_matrix: List[List[int]] = []
+    total_fraud_value: float = 0.0
+    fraud_value_detected: float = 0.0
+    false_negative_cost: float = 0.0
+    false_positive_cost: float = 0.0
+    estimated_money_protected: float = 0.0
+    threshold_used: float = 0.50
+    evaluated_at: str = ""
+    candidate_comparison: Dict[str, float] = {}
+    boundary_errors: Dict[str, List[Dict[str, Any]]] = {}
 
 class SystemOverviewMetrics(BaseModel):
     total_transactions: int

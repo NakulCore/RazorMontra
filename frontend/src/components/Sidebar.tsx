@@ -1,65 +1,126 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   ArrowLeftRight,
-  AlertTriangle,
+  ShieldAlert,
   PlayCircle,
   BookOpen,
   BarChart3,
   FileClock,
-  Sparkles
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
+  CheckCircle2,
+  Lock
 } from 'lucide-react';
-
-export type NavTab = 'dashboard' | 'transactions' | 'demo' | 'policies' | 'metrics' | 'audit';
+import { NavTab } from '../types';
 
 interface SidebarProps {
   currentTab: NavTab;
   onTabChange: (tab: NavTab) => void;
   highRiskCount: number;
+  isOpenMobile?: boolean;
+  onCloseMobile?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, highRiskCount }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  currentTab,
+  onTabChange,
+  highRiskCount,
+  isOpenMobile = false,
+  onCloseMobile,
+}) => {
+  const [collapsed, setCollapsed] = useState(false);
+
   const navItems = [
     { id: 'dashboard' as NavTab, label: 'Dashboard', icon: LayoutDashboard },
     { id: 'transactions' as NavTab, label: 'Live Transactions', icon: ArrowLeftRight },
-    { id: 'demo' as NavTab, label: 'Demo Simulator', icon: PlayCircle, badge: 'Interactive' },
+    { id: 'alerts' as NavTab, label: 'Risk Alerts', icon: ShieldAlert, badgeCount: highRiskCount },
+    { id: 'demo' as NavTab, label: 'Demo Simulator', icon: PlayCircle, badgeText: 'Demo' },
     { id: 'policies' as NavTab, label: 'RAG Policies', icon: BookOpen },
     { id: 'metrics' as NavTab, label: 'Model Evaluation', icon: BarChart3 },
     { id: 'audit' as NavTab, label: 'Audit Trail', icon: FileClock },
   ];
 
+  const handleNavClick = (tab: NavTab) => {
+    onTabChange(tab);
+    if (onCloseMobile) onCloseMobile();
+  };
+
   return (
-    <aside className="w-64 bg-[#0d1527] border-r border-slate-800/80 flex flex-col justify-between p-4 shrink-0">
-      <div className="space-y-6">
-        <div className="px-3 py-2">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Navigation</p>
-          <nav className="mt-2 space-y-1">
+    <>
+      {/* Mobile Backdrop */}
+      {isOpenMobile && (
+        <div
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 md:hidden"
+          onClick={onCloseMobile}
+        />
+      )}
+
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-40 bg-white/70 backdrop-blur-xl border-r border-zinc-200/80 flex flex-col justify-between p-3 shrink-0 transition-all duration-200 shadow-[1px_0_2px_rgba(0,0,0,0.02)] ${
+          collapsed ? 'w-16' : 'w-56'
+        } ${isOpenMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+      >
+        <div className="space-y-4">
+          {/* Top Collapse Button (Desktop Only) */}
+          <div className="hidden md:flex items-center justify-between px-2 pt-0.5">
+            {!collapsed && (
+              <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
+                Platform Navigation
+              </span>
+            )}
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="p-1 rounded text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition ml-auto"
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentTab === item.id;
               return (
                 <button
                   key={item.id}
-                  onClick={() => onTabChange(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  onClick={() => handleNavClick(item.id)}
+                  title={collapsed ? item.label : undefined}
+                  className={`w-full flex items-center ${
+                    collapsed ? 'justify-center px-2 py-2.5' : 'justify-between px-2.5 py-2'
+                  } rounded-lg text-xs font-medium transition-all duration-150 ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                      ? 'bg-black text-white font-semibold shadow-xs'
+                      : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
                   }`}
                 >
-                  <div className="flex items-center space-x-3">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                    <span>{item.label}</span>
+                  <div className="flex items-center space-x-2.5">
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-zinc-500'}`} />
+                    {!collapsed && <span className="tracking-tight text-xs">{item.label}</span>}
                   </div>
-                  {item.badge && (
-                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                      {item.badge}
-                    </span>
-                  )}
-                  {item.id === 'transactions' && highRiskCount > 0 && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                      {highRiskCount}
-                    </span>
+
+                  {!collapsed && (
+                    <div className="flex items-center space-x-1.5">
+                      {item.badgeText && (
+                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                          isActive ? 'bg-white/20 text-white border-white/30' : 'bg-zinc-100 text-zinc-700 border-zinc-200'
+                        }`}>
+                          {item.badgeText}
+                        </span>
+                      )}
+                      {item.badgeCount !== undefined && item.badgeCount > 0 && (
+                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full border ${
+                          isActive ? 'bg-white text-black border-white' : 'bg-red-500 text-white border-red-500 shadow-2xs'
+                        }`}>
+                          {item.badgeCount}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </button>
               );
@@ -67,27 +128,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, highR
           </nav>
         </div>
 
-        {/* Buildathon Track Badge Card */}
-        <div className="mx-2 p-3.5 rounded-xl bg-gradient-to-br from-slate-900 to-[#14233c] border border-blue-500/20 shadow-inner">
-          <div className="flex items-center space-x-2 text-xs font-semibold text-blue-400">
-            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-            <span>Razorpay AI Buildathon</span>
-          </div>
-          <p className="text-xs text-slate-300 font-medium mt-1">Track: AI Risk Manager</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">Autonomous Feature Extraction → ML Risk → Rule Engine → RAG → Bounded Decisions.</p>
-        </div>
-      </div>
+        {/* Operational Status Info & Subtle Disclaimer at Bottom */}
+        <div className="pt-3 border-t border-zinc-200/80 space-y-2.5">
+          {!collapsed ? (
+            <div className="px-1.5 flex items-center justify-between text-[11px] text-zinc-500">
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]" />
+                <span className="text-zinc-700 font-medium">Live Engine</span>
+              </span>
+              <span className="font-mono text-[10px] text-zinc-400">v1.0-rf</span>
+            </div>
+          ) : (
+            <div className="flex justify-center py-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]" title="Live Engine Active" />
+            </div>
+          )}
 
-      <div className="p-3 bg-slate-900/60 rounded-lg border border-slate-800 text-[11px] text-slate-400">
-        <div className="flex justify-between items-center text-slate-300 font-medium">
-          <span>Environment</span>
-          <span className="text-emerald-400">Online (FastAPI)</span>
+          {!collapsed ? (
+            <div className="px-1.5 pb-0.5">
+              <p className="text-[10px] text-zinc-400 leading-normal">
+                &ldquo;RazorMontra&rdquo; and Razorpay branding are used for Buildathon purposes. This is an independent Razorpay Buildathon submission and not an official Razorpay product.
+              </p>
+            </div>
+          ) : (
+            <div
+              className="flex justify-center pb-1 text-zinc-400 hover:text-zinc-600 transition-colors cursor-help"
+              title="&ldquo;RazorMontra&rdquo; and Razorpay branding are used for Buildathon purposes. This is an independent Razorpay Buildathon submission and not an official Razorpay product."
+            >
+              <span className="text-[10px] font-serif italic text-zinc-400">i</span>
+            </div>
+          )}
         </div>
-        <div className="flex justify-between items-center mt-1">
-          <span>Provider</span>
-          <span className="text-slate-200">Mock Sandbox</span>
-        </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 };

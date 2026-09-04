@@ -39,6 +39,7 @@ class Settings(BaseModel):
     PAYMENT_PROVIDER: str = os.getenv("PAYMENT_PROVIDER", "mock")
     RAZORPAY_KEY_ID: str = os.getenv("RAZORPAY_KEY_ID", "")
     RAZORPAY_KEY_SECRET: str = os.getenv("RAZORPAY_KEY_SECRET", "")
+    RAZORPAY_WEBHOOK_SECRET: str = os.getenv("RAZORPAY_WEBHOOK_SECRET", "")
     RAZORPAY_TEST_MODE: bool = os.getenv("RAZORPAY_TEST_MODE", "True").lower() in ("true", "1", "yes")
 
     # Security

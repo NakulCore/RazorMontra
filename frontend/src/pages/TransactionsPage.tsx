@@ -1,160 +1,275 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Transaction } from '../types';
-import { Search, Filter, ArrowRight, ShieldAlert, CheckCircle, Smartphone, Globe } from 'lucide-react';
+import {
+  Search,
+  ArrowRight,
+  ShieldAlert,
+  CheckCircle,
+  Smartphone,
+  Globe,
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
+  ArrowUpDown,
+  Flame
+} from 'lucide-react';
+import { RiskScoreGauge } from '../components/RiskScoreGauge';
+import { RiskBadge } from '../components/RiskBadge';
+import { DecisionBadge } from '../components/DecisionBadge';
 
 interface TransactionsPageProps {
   transactions: Transaction[];
   onSelectTransaction: (tx: Transaction) => void;
 }
 
-export const TransactionsPage: React.FC<TransactionsPageProps> = ({ transactions, onSelectTransaction }) => {
+export const TransactionsPage: React.FC<TransactionsPageProps> = ({
+  transactions,
+  onSelectTransaction,
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'high_risk' | 'low_risk'>('all');
+  const [riskFilter, setRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [sortBy, setSortBy] = useState<'time' | 'amount' | 'risk'>('time');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
 
-  const filtered = transactions.filter((tx) => {
-    const matchesSearch =
-      tx.transaction_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.customer_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.merchant_id.toLowerCase().includes(searchTerm.toLowerCase());
+  // Process & enrich transactions for presentation
+  const processed = useMemo(() => {
+    return transactions.map((tx) => {
+      let riskScore = 12;
+      let riskClass: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'LOW';
+      let decision: 'APPROVE' | 'VERIFY' | 'FLAG' | 'ESCALATE' = 'APPROVE';
 
-    const isHigh = tx.is_fraud || tx.amount > 35000 || tx.transactions_last_10_minutes >= 3 || tx.new_location;
+      if (tx.is_fraud || tx.transactions_last_10_minutes >= 4) {
+        riskScore = 95;
+        riskClass = 'CRITICAL';
+        decision = 'ESCALATE';
+      } else if (tx.amount > 35000 || tx.amount_deviation > 3.0) {
+        riskScore = 82;
+        riskClass = 'HIGH';
+        decision = 'FLAG';
+      } else if (tx.new_device || tx.ip_country !== tx.customer_country || tx.previous_failed_transactions > 0) {
+        riskScore = 52;
+        riskClass = 'MEDIUM';
+        decision = 'VERIFY';
+      }
 
-    if (filterType === 'high_risk') return matchesSearch && isHigh;
-    if (filterType === 'low_risk') return matchesSearch && !isHigh;
-    return matchesSearch;
-  });
+      return {
+        ...tx,
+        calculatedScore: riskScore,
+        calculatedClass: riskClass,
+        calculatedDecision: decision,
+      };
+    });
+  }, [transactions]);
+
+  // Filter
+  const filtered = useMemo(() => {
+    return processed.filter((tx) => {
+      const matchSearch =
+        tx.transaction_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.customer_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.merchant_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.payment_method.toLowerCase().includes(searchTerm.toLowerCase());
+
+      if (!matchSearch) return false;
+
+      if (riskFilter === 'high') return tx.calculatedClass === 'HIGH' || tx.calculatedClass === 'CRITICAL';
+      if (riskFilter === 'medium') return tx.calculatedClass === 'MEDIUM';
+      if (riskFilter === 'low') return tx.calculatedClass === 'LOW';
+      return true;
+    });
+  }, [processed, searchTerm, riskFilter]);
+
+  // Sort
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'amount') return b.amount - a.amount;
+      if (sortBy === 'risk') return b.calculatedScore - a.calculatedScore;
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+  }, [filtered, sortBy]);
+
+  // Paginate
+  const totalPages = Math.ceil(sorted.length / pageSize) || 1;
+  const paginated = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header & Controls Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-extrabold text-white tracking-tight">Live Payment Stream</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Continuous telemetry ingestion & automated risk classification</p>
+          <h1 className="text-lg sm:text-xl font-bold text-zinc-900 tracking-tight">Live Payment Stream</h1>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Continuous payment ingestion, empirical feature extraction, and automated decision assignment.
+          </p>
         </div>
 
-        {/* Search & Filter Controls */}
-        <div className="flex items-center space-x-3">
+        {/* Filter Controls Bar - Aligned Single Baseline */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Search */}
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search ID, customer, merchant..."
+              placeholder="Search by ID, customer..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 w-64"
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-8 pr-3 h-8 rounded-lg bg-white border border-zinc-200 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-black w-52 sm:w-60 shadow-2xs"
             />
           </div>
 
-          <div className="flex rounded-xl bg-slate-900 p-1 border border-slate-800 text-xs font-medium">
+          {/* Risk Level Filter Tabs */}
+          <div className="flex rounded-lg bg-zinc-100 p-0.5 border border-zinc-200/80 text-xs font-medium">
             <button
-              onClick={() => setFilterType('all')}
-              className={`px-3 py-1 rounded-lg transition ${
-                filterType === 'all' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              onClick={() => { setRiskFilter('all'); setCurrentPage(1); }}
+              className={`h-7 px-2.5 rounded-md transition-all ${
+                riskFilter === 'all' ? 'bg-black text-white font-semibold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
-              All ({transactions.length})
+              All ({processed.length})
             </button>
             <button
-              onClick={() => setFilterType('high_risk')}
-              className={`px-3 py-1 rounded-lg transition ${
-                filterType === 'high_risk' ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-white'
+              onClick={() => { setRiskFilter('high'); setCurrentPage(1); }}
+              className={`h-7 px-2.5 rounded-md transition-all ${
+                riskFilter === 'high' ? 'bg-black text-white font-semibold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
-              High Risk
+              Critical / High
             </button>
             <button
-              onClick={() => setFilterType('low_risk')}
-              className={`px-3 py-1 rounded-lg transition ${
-                filterType === 'low_risk' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              onClick={() => { setRiskFilter('medium'); setCurrentPage(1); }}
+              className={`h-7 px-2.5 rounded-md transition-all ${
+                riskFilter === 'medium' ? 'bg-black text-white font-semibold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
+              }`}
+            >
+              Medium
+            </button>
+            <button
+              onClick={() => { setRiskFilter('low'); setCurrentPage(1); }}
+              className={`h-7 px-2.5 rounded-md transition-all ${
+                riskFilter === 'low' ? 'bg-black text-white font-semibold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
               Approved
             </button>
           </div>
+
+          {/* Sort Dropdown */}
+          <div className="flex items-center space-x-1.5 h-8 px-2.5 rounded-lg bg-white border border-zinc-200 text-xs text-zinc-700 shadow-2xs">
+            <ArrowUpDown className="w-3 h-3 text-zinc-400" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="bg-transparent text-zinc-800 focus:outline-none cursor-pointer text-xs"
+            >
+              <option value="time">Latest</option>
+              <option value="risk">Risk Score</option>
+              <option value="amount">Amount</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Transaction Table */}
-      <div className="rounded-2xl bg-[#0f172a] border border-slate-800 overflow-hidden shadow-xl">
+      {/* Main Table */}
+      <div className="glass-card rounded-xl overflow-hidden shadow-xs border border-zinc-200/80">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-900/90 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-zinc-50/90 text-zinc-500 uppercase tracking-wider text-[10px] border-b border-zinc-200">
               <tr>
-                <th className="py-3.5 px-4 font-semibold">Transaction ID</th>
-                <th className="py-3.5 px-4 font-semibold">Amount (INR)</th>
-                <th className="py-3.5 px-4 font-semibold">Entity Profile</th>
-                <th className="py-3.5 px-4 font-semibold">Telemetry Signals</th>
-                <th className="py-3.5 px-4 font-semibold">Method</th>
-                <th className="py-3.5 px-4 font-semibold">Risk Classification</th>
-                <th className="py-3.5 px-4 font-semibold text-right">Action</th>
+                <th className="py-2.5 px-3.5 font-semibold">Transaction ID</th>
+                <th className="py-2.5 px-3.5 font-semibold text-right">Amount (INR)</th>
+                <th className="py-2.5 px-3.5 font-semibold">Customer / Merchant</th>
+                <th className="py-2.5 px-3.5 font-semibold text-center">Risk Score</th>
+                <th className="py-2.5 px-3.5 font-semibold text-center">Risk Level</th>
+                <th className="py-2.5 px-3.5 font-semibold">Key Signals</th>
+                <th className="py-2.5 px-3.5 font-semibold text-center">Decision</th>
+                <th className="py-2.5 px-3.5 font-semibold">Timestamp</th>
+                <th className="py-2.5 px-3.5 font-semibold text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
-              {filtered.map((tx) => {
-                const isHigh = tx.is_fraud || tx.amount > 35000 || tx.transactions_last_10_minutes >= 3 || tx.new_location;
+            <tbody className="divide-y divide-zinc-100 text-zinc-800">
+              {paginated.map((tx) => {
                 return (
                   <tr
                     key={tx.transaction_id}
                     onClick={() => onSelectTransaction(tx)}
-                    className="hover:bg-slate-850/70 transition cursor-pointer group"
+                    className="hover:bg-zinc-50/80 transition-colors cursor-pointer group"
                   >
-                    <td className="py-3.5 px-4 font-mono font-bold text-white text-xs">
-                      {tx.transaction_id}
-                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">
-                        {new Date(tx.timestamp).toLocaleTimeString()}
+                    <td className="py-2.5 px-3.5 whitespace-nowrap">
+                      <span className="font-mono font-medium text-zinc-900 group-hover:text-black transition-colors">
+                        {tx.transaction_id}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-white">
-                      ₹{tx.amount.toLocaleString()}
-                      {tx.amount_deviation > 2 && (
-                        <span className="block text-[10px] font-normal text-amber-400">
-                          {tx.amount_deviation.toFixed(1)}x baseline
+
+                    {/* Right-Aligned Monetary Value */}
+                    <td className="py-2.5 px-3.5 text-right whitespace-nowrap">
+                      <span className="font-semibold text-zinc-900 font-mono tabular-nums">
+                        ₹{Math.round(tx.amount).toLocaleString('en-IN')}
+                      </span>
+                      {tx.amount_deviation > 2.0 && (
+                        <span className="block text-[10px] text-zinc-500 font-mono">
+                          {tx.amount_deviation.toFixed(1)}x base
                         </span>
                       )}
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className="text-slate-200 font-medium block">{tx.customer_id}</span>
-                      <span className="text-[10px] text-slate-500">{tx.merchant_id}</span>
+
+                    <td className="py-2.5 px-3.5 whitespace-nowrap">
+                      <span className="text-zinc-900 font-medium block">{tx.customer_id}</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">{tx.merchant_id}</span>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-wrap gap-1.5">
-                        {tx.new_device && (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[10px] flex items-center gap-1">
-                            <Smartphone className="w-2.5 h-2.5" /> New Dev
+
+                    <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                      <RiskScoreGauge score={tx.calculatedScore} size="sm" />
+                    </td>
+
+                    <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                      <RiskBadge riskClass={tx.calculatedClass} size="sm" />
+                    </td>
+
+                    <td className="py-2.5 px-3.5">
+                      <div className="flex flex-wrap gap-1 max-w-xs">
+                        {tx.is_fraud && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-black text-white font-bold border border-black">
+                            FRAUD PATTERN
                           </span>
                         )}
-                        {tx.ip_country !== tx.customer_country && (
-                          <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[10px] flex items-center gap-1">
-                            <Globe className="w-2.5 h-2.5" /> {tx.ip_country}
+                        {tx.new_device && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
+                            New Device
                           </span>
                         )}
                         {tx.transactions_last_10_minutes >= 3 && (
-                          <span className="px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 text-[10px]">
-                            {tx.transactions_last_10_minutes} in 10m
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-900 border border-zinc-300 font-medium">
+                            {tx.transactions_last_10_minutes} txns / 10m
                           </span>
                         )}
-                        {!tx.new_device && tx.ip_country === tx.customer_country && tx.transactions_last_10_minutes < 3 && (
-                          <span className="text-slate-500 text-[11px]">Normal Telemetry</span>
+                        {tx.ip_country !== tx.customer_country && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-900 border border-zinc-300 font-medium">
+                            Geo Mismatch
+                          </span>
+                        )}
+                        {!tx.is_fraud && !tx.new_device && tx.transactions_last_10_minutes < 3 && tx.ip_country === tx.customer_country && (
+                          <span className="text-[10px] text-zinc-500">Normal Profile</span>
                         )}
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 uppercase font-mono text-[11px] text-slate-400">
-                      {tx.payment_method}
+
+                    <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                      <DecisionBadge decision={tx.calculatedDecision} size="sm" />
                     </td>
-                    <td className="py-3.5 px-4">
-                      {isHigh ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-bold">
-                          <ShieldAlert className="w-3 h-3" /> HIGH RISK
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold">
-                          <CheckCircle className="w-3 h-3" /> LOW RISK
-                        </span>
-                      )}
+
+                    <td className="py-2.5 px-3.5 text-zinc-500 font-mono whitespace-nowrap text-[11px]">
+                      {new Date(tx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <span className="inline-flex items-center gap-1 text-blue-400 group-hover:text-blue-300 font-medium text-xs">
-                        Investigate <ArrowRight className="w-3.5 h-3.5" />
+
+                    <td className="py-2.5 px-3.5 text-right whitespace-nowrap">
+                      <span className="text-zinc-500 group-hover:text-black font-medium inline-flex items-center gap-1 transition-colors">
+                        Investigate
+                        <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                       </span>
                     </td>
                   </tr>
@@ -162,6 +277,37 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ transactions
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Footer */}
+        <div className="p-3 bg-zinc-50/90 border-t border-zinc-200 flex items-center justify-between text-xs text-zinc-600">
+          <div>
+            Showing <strong className="text-zinc-900 font-mono font-semibold">{(currentPage - 1) * pageSize + 1}</strong> to{' '}
+            <strong className="text-zinc-900 font-mono font-semibold">{Math.min(currentPage * pageSize, sorted.length)}</strong> of{' '}
+            <strong className="text-zinc-900 font-mono font-semibold">{sorted.length}</strong> transactions
+          </div>
+
+          <div className="flex items-center space-x-1.5">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="h-7 px-2.5 rounded bg-white hover:bg-zinc-100 disabled:opacity-40 border border-zinc-200 text-zinc-700 hover:text-black transition-colors flex items-center gap-1 shadow-2xs"
+            >
+              <ChevronLeft className="w-3 h-3" />
+              <span>Prev</span>
+            </button>
+            <span className="px-2 font-mono text-[11px] text-zinc-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="h-7 px-2.5 rounded bg-white hover:bg-zinc-100 disabled:opacity-40 border border-zinc-200 text-zinc-700 hover:text-black transition-colors flex items-center gap-1 shadow-2xs"
+            >
+              <span>Next</span>
+              <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

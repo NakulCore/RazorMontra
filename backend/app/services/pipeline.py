@@ -72,7 +72,9 @@ class RiskCopilotPipeline:
             action_res = await self.action_engine.execute_for_decision(
                 transaction_id=tx_id,
                 decision=decision.decision,
-                reason=decision.reason
+                reason=decision.reason,
+                amount=float(tx_dict.get("amount", 0.0)),
+                currency=str(tx_dict.get("currency", "INR"))
             )
         else:
             action_res = ActionExecutionResponse(
@@ -123,6 +125,48 @@ class RiskCopilotPipeline:
             account_age=int(tx_dict.get("account_age", 30)),
             is_fraud=tx_dict.get("is_fraud")
         )
+
+        # Persist transaction to DB if session provided
+        if db is not None:
+            try:
+                from backend.app.models.db_models import DBTransaction
+                from sqlalchemy import select
+                stmt = select(DBTransaction).where(DBTransaction.transaction_id == tx_id)
+                res = await db.execute(stmt)
+                existing = res.scalar_one_or_none()
+                if not existing:
+                    ts = tx_response.timestamp
+                    if ts.tzinfo is not None:
+                        ts = ts.replace(tzinfo=None)
+                    db_tx = DBTransaction(
+                        transaction_id=tx_response.transaction_id,
+                        merchant_id=tx_response.merchant_id,
+                        customer_id=tx_response.customer_id,
+                        timestamp=ts,
+                        amount=tx_response.amount,
+                        currency=tx_response.currency,
+                        payment_method=tx_response.payment_method,
+                        device_id=tx_response.device_id,
+                        device_age=tx_response.device_age,
+                        ip_country=tx_response.ip_country,
+                        customer_country=tx_response.customer_country,
+                        merchant_country=tx_response.merchant_country,
+                        previous_transaction_count=tx_response.previous_transaction_count,
+                        previous_failed_transactions=tx_response.previous_failed_transactions,
+                        transactions_last_10_minutes=tx_response.transactions_last_10_minutes,
+                        transactions_last_hour=tx_response.transactions_last_hour,
+                        average_customer_amount=tx_response.average_customer_amount,
+                        amount_deviation=tx_response.amount_deviation,
+                        new_device=tx_response.new_device,
+                        new_location=tx_response.new_location,
+                        chargeback_history=tx_response.chargeback_history,
+                        account_age=tx_response.account_age,
+                        is_fraud=tx_response.is_fraud
+                    )
+                    db.add(db_tx)
+                    await db.commit()
+            except Exception as e:
+                print(f"Warning: Failed to persist transaction to DB: {e}")
 
         return ComprehensiveRiskAnalysis(
             transaction=tx_response,

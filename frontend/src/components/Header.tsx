@@ -1,48 +1,98 @@
-import React from 'react';
-import { ShieldCheck, Activity, Zap, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, Activity, RefreshCw, Menu, Sparkles, Server } from 'lucide-react';
 
 interface HeaderProps {
   onRefresh: () => void;
   isRefreshing?: boolean;
+  onToggleMobileMenu?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onRefresh, isRefreshing }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onRefresh,
+  isRefreshing,
+  onToggleMobileMenu,
+}) => {
+  const [lastUpdated, setLastUpdated] = useState<string>('');
+
+  useEffect(() => {
+    setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  }, []);
+
+  const handleRefreshClick = () => {
+    onRefresh();
+    setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  };
+
   return (
-    <header className="h-16 bg-[#0e172a] border-b border-slate-800 px-6 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-14 bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      {/* Brand & Mobile Toggle */}
       <div className="flex items-center space-x-3">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-          <ShieldCheck className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="font-bold text-white text-lg tracking-tight">Razorpay</span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              AI RISK COPILOT
-            </span>
+        {onToggleMobileMenu && (
+          <button
+            onClick={onToggleMobileMenu}
+            className="p-1.5 rounded-lg bg-zinc-100 text-zinc-600 hover:text-zinc-900 md:hidden transition"
+            title="Toggle Navigation Menu"
+            aria-label="Toggle navigation menu"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+        )}
+
+        <div className="flex items-center space-x-2.5">
+          <img
+            src="https://img.logo.dev/razorpay.com?token=live_6a1a28fd-6420-4492-aeb0-b297461d9de2&size=512&retina=true&format=png"
+            alt="Razorpay"
+            className="w-8 h-8 rounded-lg object-contain bg-white border border-zinc-200/90 p-1 shadow-2xs shrink-0"
+          />
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="font-extrabold text-zinc-900 text-sm tracking-tight">RazorMontra</span>
+            </div>
+            <p className="text-[11px] text-zinc-500 hidden sm:block leading-none mt-0.5">
+              AI Financial Intelligence for Merchants
+            </p>
           </div>
-          <p className="text-[11px] text-slate-400">Autonomous Fraud Detection & Policy Enforcement</p>
         </div>
       </div>
 
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="font-medium">Sandbox Mode Active</span>
+      {/* Status Indicators & Actions - Strictly Aligned on Single Baseline */}
+      <div className="flex items-center space-x-2 sm:space-x-2.5">
+        {/* System Status Indicator */}
+        <div className="hidden lg:flex items-center space-x-2 h-7 px-2.5 rounded-md bg-zinc-100/90 border border-zinc-200 text-[11px] text-zinc-700 font-medium">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]" />
+          <span className="tracking-wide">System Operational</span>
         </div>
 
-        <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
-          <Activity className="w-3.5 h-3.5 text-blue-400" />
-          <span>Model: <strong className="text-white">RandomForest v1.0</strong></span>
+        {/* Sandbox Mode */}
+        <div className="flex items-center space-x-1.5 h-7 px-2.5 rounded-md bg-zinc-100/90 border border-zinc-200 text-zinc-700 font-medium text-[11px]">
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+          <span className="hidden sm:inline font-mono">SANDBOX MODE</span>
+          <span className="sm:hidden font-mono">SANDBOX</span>
         </div>
 
+        {/* Model Version */}
+        <div className="hidden md:flex items-center space-x-1.5 h-7 px-2.5 rounded-md bg-zinc-100/90 border border-zinc-200 text-zinc-700 text-[11px]">
+          <Activity className="w-3 h-3 text-zinc-500" />
+          <span>Model <strong className="text-zinc-900 font-mono font-medium">v1.0</strong></span>
+        </div>
+
+        {/* Live Clock */}
+        {lastUpdated && (
+          <span className="text-[11px] font-mono text-zinc-500 hidden xl:inline-block px-1">
+            {lastUpdated}
+          </span>
+        )}
+
+        {/* Refresh Button */}
         <button
-          onClick={onRefresh}
+          onClick={handleRefreshClick}
           disabled={isRefreshing}
-          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium"
-          title="Refresh Data"
+          className="h-7 px-2.5 sm:px-3 rounded-md bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 hover:text-zinc-900 shadow-xs transition flex items-center gap-1.5 text-[11px] font-medium active:scale-95 disabled:opacity-60"
+          title="Refresh Telemetry"
+          aria-label="Refresh telemetry data"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-400' : ''}`} />
-          <span>Refresh</span>
+          <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-zinc-900' : 'text-zinc-500'}`} />
+          <span className="hidden sm:inline">Refresh</span>
         </button>
       </div>
     </header>

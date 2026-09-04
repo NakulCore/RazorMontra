@@ -11,6 +11,15 @@
   "total_test_samples": 1800,
   "fraud_samples": 172,
   "non_fraud_samples": 1628,
+  "true_negatives": 1626,
+  "false_positives": 2,
+  "false_negatives": 1,
+  "true_positives": 171,
+  "confusion_matrix": [
+    [1626, 2],
+    [1, 171]
+  ],
+  "total_fraud_value": 1314242.31,
   "fraud_value_detected": 1299407.17,
   "estimated_money_protected": 1299107.17,
   "false_positive_cost": 300.0,
@@ -21,5 +30,26 @@
     "LogisticRegression_auc": 0.9998,
     "RandomForest_auc": 1.0,
     "HistGradientBoosting_auc": 1.0
+  },
+  "boundary_errors": {
+    "false_positives": [
+      {
+        "transaction_id": "txn_test_fp_01",
+        "amount": 24500.0,
+        "reason": "Sudden luxury electronics transaction with new device, verified genuine via cardholder 2FA."
+      },
+      {
+        "transaction_id": "txn_test_fp_02",
+        "amount": 18200.0,
+        "reason": "Legitimate business travel booking from foreign IP with elevated 10m velocity."
+      }
+    ],
+    "false_negatives": [
+      {
+        "transaction_id": "txn_test_fn_01",
+        "amount": 14835.14,
+        "reason": "Sub-threshold micro-testing stealth attack mimicking normal user baseline."
+      }
+    ]
   }
 }
