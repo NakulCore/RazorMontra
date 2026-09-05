@@ -126,7 +126,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       </div>
 
       {/* Grouped Metric Cards (Business Impact & Model Performance) */}
-      <MetricsCards metrics={metrics} />
+      <MetricsCards metrics={metrics} onNavigateTab={onNavigateTab} />
 
       {/* Visual Analytics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-stretch">
@@ -232,7 +232,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         {/* Right Col: Financial Impact ROI */}
         <div className="lg:col-span-1">
-          <FinancialImpactChart metrics={metrics} />
+          <FinancialImpactChart metrics={metrics} onNavigateTab={onNavigateTab} />
         </div>
       </div>
     </div>

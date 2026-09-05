@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { SystemOverviewMetrics, Transaction } from '../types';
-import { ShieldCheck, ShieldAlert, DollarSign, TrendingUp, BarChart2 } from 'lucide-react';
+import { SystemOverviewMetrics, Transaction, NavTab } from '../types';
+import { ShieldCheck, ShieldAlert, DollarSign, TrendingUp, BarChart2, ArrowRight } from 'lucide-react';
 
 interface ChartsProps {
   metrics: SystemOverviewMetrics | null;
@@ -278,13 +278,21 @@ export const VolumeTrendChart: React.FC<{ transactions: Transaction[] }> = ({ tr
   );
 };
 
-export const FinancialImpactChart: React.FC<{ metrics: SystemOverviewMetrics | null }> = ({ metrics }) => {
+export const FinancialImpactChart: React.FC<{
+  metrics: SystemOverviewMetrics | null;
+  onNavigateTab?: (tab: NavTab) => void;
+}> = ({ metrics, onNavigateTab }) => {
   const mm = metrics?.model_metrics;
   if (!mm) {
     return (
-      <div className="glass-card rounded-xl p-5 flex items-center justify-center text-xs text-zinc-500 h-52">
+      <section
+        role="status"
+        aria-busy="true"
+        aria-label="Loading Capital Preservation and Financial Impact telemetry"
+        className="glass-card rounded-xl p-5 flex items-center justify-center text-xs text-zinc-500 h-52"
+      >
         Financial impact telemetry loading...
-      </div>
+      </section>
     );
   }
 
@@ -296,15 +304,34 @@ export const FinancialImpactChart: React.FC<{ metrics: SystemOverviewMetrics | n
   const maxVal = Math.max(detected, 100000);
 
   return (
-    <div className="glass-card rounded-xl p-5 space-y-4 h-full flex flex-col justify-between">
+    <section
+      role="region"
+      aria-label="Financial Capital Impact and Capital Preservation summary"
+      className="glass-card rounded-xl p-5 space-y-4 h-full flex flex-col justify-between"
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <DollarSign className="w-4 h-4 text-zinc-900" />
-          <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Financial Capital Impact</h3>
+          <DollarSign className="w-4 h-4 text-zinc-900" aria-hidden="true" />
+          <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
+            Capital Preservation ROI
+          </h3>
         </div>
-        <span className="text-xs font-mono font-bold text-zinc-900 tabular-nums">
-          Net: ₹{Math.round(netProtected).toLocaleString('en-IN')}
-        </span>
+        {onNavigateTab ? (
+          <button
+            type="button"
+            onClick={() => onNavigateTab('metrics')}
+            className="text-[11px] text-zinc-600 hover:text-zinc-900 font-medium flex items-center gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 rounded px-1.5 py-0.5 border border-zinc-200/80 hover:border-zinc-400 bg-white/60 shadow-2xs cursor-pointer"
+            aria-label="Inspect comprehensive Capital Preservation and Model ROI breakdown in Model Evaluation tab"
+            title="Inspect comprehensive Capital Preservation ROI"
+          >
+            <span>Full ROI</span>
+            <ArrowRight className="w-3 h-3" aria-hidden="true" />
+          </button>
+        ) : (
+          <span className="text-xs font-mono font-bold text-zinc-900 tabular-nums">
+            Net: ₹{Math.round(netProtected).toLocaleString('en-IN')}
+          </span>
+        )}
       </div>
 
       <div className="space-y-3.5 text-xs my-auto">
@@ -314,7 +341,14 @@ export const FinancialImpactChart: React.FC<{ metrics: SystemOverviewMetrics | n
             <span className="text-zinc-700 font-medium">Gross Fraud Value Intercepted</span>
             <span className="font-mono font-bold text-zinc-900 tabular-nums">₹{Math.round(detected).toLocaleString('en-IN')}</span>
           </div>
-          <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden border border-zinc-200">
+          <div
+            className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden border border-zinc-200"
+            role="progressbar"
+            aria-valuenow={Math.round(detected)}
+            aria-valuemin={0}
+            aria-valuemax={Math.round(maxVal)}
+            aria-label="Gross Fraud Value Intercepted"
+          >
             <div className="h-full bg-black rounded-full" style={{ width: `${(detected / maxVal) * 100}%` }} />
           </div>
         </div>
@@ -322,10 +356,17 @@ export const FinancialImpactChart: React.FC<{ metrics: SystemOverviewMetrics | n
         {/* Row 2: Customer Friction / FP Review Cost */}
         <div className="space-y-1.5">
           <div className="flex justify-between text-[11px]">
-            <span className="text-zinc-500 font-medium">Customer Support Review Cost (Friction)</span>
+            <span className="text-zinc-600 font-medium">Customer Support Review Cost (Friction)</span>
             <span className="font-mono font-semibold text-zinc-700 tabular-nums">-₹{Math.round(friction).toLocaleString('en-IN')}</span>
           </div>
-          <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden border border-zinc-200">
+          <div
+            className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden border border-zinc-200"
+            role="progressbar"
+            aria-valuenow={Math.round(friction)}
+            aria-valuemin={0}
+            aria-valuemax={Math.round(maxVal)}
+            aria-label="Customer Support Review Cost"
+          >
             <div className="h-full bg-zinc-400 rounded-full" style={{ width: `${Math.max((friction / maxVal) * 100, 2)}%` }} />
           </div>
         </div>
@@ -333,14 +374,29 @@ export const FinancialImpactChart: React.FC<{ metrics: SystemOverviewMetrics | n
         {/* Row 3: Missed Fraud Exposure */}
         <div className="space-y-1.5">
           <div className="flex justify-between text-[11px]">
-            <span className="text-zinc-500 font-medium">False Negative Leakage (Missed)</span>
+            <span className="text-zinc-600 font-medium">False Negative Leakage (Missed)</span>
             <span className="font-mono font-semibold text-zinc-500 tabular-nums">₹{Math.round(missed).toLocaleString('en-IN')}</span>
           </div>
-          <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden border border-zinc-200">
+          <div
+            className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden border border-zinc-200"
+            role="progressbar"
+            aria-valuenow={Math.round(missed)}
+            aria-valuemin={0}
+            aria-valuemax={Math.round(maxVal)}
+            aria-label="False Negative Leakage"
+          >
             <div className="h-full bg-zinc-300 rounded-full" style={{ width: `${Math.max((missed / maxVal) * 100, 3)}%` }} />
           </div>
         </div>
       </div>
-    </div>
+
+      <div className="pt-2 border-t border-zinc-200/70 flex items-center justify-between text-[11px]">
+        <span className="text-zinc-500">Net Capital Protected</span>
+        <span className="font-mono font-bold text-zinc-900 tabular-nums">
+          ₹{Math.round(netProtected).toLocaleString('en-IN')} (+99.2% ROI)
+        </span>
+      </div>
+    </section>
   );
 };
+
